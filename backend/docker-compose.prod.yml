@@ -1,0 +1,58 @@
+# =============================================
+# Production with Cloud Services
+# =============================================
+# Usage:
+#   Build and deploy: docker-compose -f docker-compose.prod.yml up -d
+#
+# Required environment variables (set in .env or CI/CD):
+#   - DATABASE_URL (Supabase/Railway/Neon connection string)
+#   - REDIS_URL (Upstash connection string)
+#   - JWT_SECRET
+#   - HEYGEN_API_KEY
+#   - STRIPE_SECRET_KEY
+#   - etc. (see .env.example)
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GO_VERSION=1.22
+    container_name: genvid-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - PORT=${PORT:-8080}
+      - ENV=production
+      - APP_URL=${APP_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRY=${JWT_EXPIRY:-24h}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY:-168h}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
+      - HEYGEN_API_KEY=${HEYGEN_API_KEY}
+      - HEYGEN_WEBHOOK_SECRET=${HEYGEN_WEBHOOK_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - S3_BUCKET=${S3_BUCKET}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
