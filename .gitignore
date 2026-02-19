@@ -45,9 +45,11 @@ next-env.d.ts
 
 # Backend
 backend/bin/
+backend/server
 backend/*.exe
 backend/backend
 backend/genvid-backend
+backend/uploads/
 
 # Database
 *.db
