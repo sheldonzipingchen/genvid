@@ -325,6 +325,7 @@ func (s *ProjectService) processVideoGeneration(ctx context.Context, project *mo
 		imageData, err := s.loadImageAsBase64(*project.ProductImageURL)
 		if err == nil {
 			req.ImageURL = imageData
+			req.Prompt = "保持图片中产品的外观、形状、颜色、品牌标识完全不变。" + prompt
 		}
 	}
 
