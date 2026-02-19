@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth'
-import type { Project, User } from '@/types'
+import type { Project } from '@/types'
 import { 
   Video, 
   Plus, 
@@ -36,16 +36,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!_hasHydrated) return
-    if (!isAuthenticated) {
-      router.push('/login')
-      return
-    }
-    fetchProjects()
-  }, [isAuthenticated, _hasHydrated, router])
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/api/projects`, {
         headers: {
@@ -61,7 +52,24 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    if (!_hasHydrated) return
+    if (!isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    fetchProjects()
+  }, [isAuthenticated, _hasHydrated, router, fetchProjects])
+
+  useEffect(() => {
+    const hasProcessing = projects.some(p => p.status === 'processing' || p.status === 'queued')
+    if (!hasProcessing) return
+
+    const interval = setInterval(fetchProjects, 5000)
+    return () => clearInterval(interval)
+  }, [projects, fetchProjects])
 
   const handleDelete = async (projectId: string) => {
     if (!confirm('Are you sure you want to delete this project?')) return
@@ -97,7 +105,11 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-gray-900">{user?.full_name || user?.email}</p>
                 <p className="text-xs text-gray-500">{user?.credits_remaining} credits remaining</p>
               </div>
-              <Button variant="ghost" onClick={() => { logout(); router.push('/') }}>
+              <Button 
+                variant="outline" 
+                onClick={() => { logout(); router.push('/') }}
+                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+              >
                 Sign out
               </Button>
             </div>
