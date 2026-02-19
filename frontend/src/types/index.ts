@@ -21,6 +21,7 @@ export interface Project {
   product_name: string | null
   product_description: string | null
   product_url: string | null
+  product_image_url: string | null
   script: string | null
   language: string
   format: '9:16' | '1:1' | '16:9'

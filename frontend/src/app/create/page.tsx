@@ -18,7 +18,8 @@ import {
   Upload,
   Link as LinkIcon,
   Sparkles,
-  X
+  X,
+  Check
 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -37,6 +38,8 @@ export default function CreatePage() {
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [productImages, setProductImages] = useState<string[]>([])
+  const [productImageURL, setProductImageURL] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   
   const [project, setProject] = useState<Partial<Project>>({
@@ -57,20 +60,45 @@ export default function CreatePage() {
     }
   }, [isAuthenticated, _hasHydrated, router])
 
-  const handleFileSelect = (files: FileList | null) => {
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const response = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+      
+      const data = await response.json()
+      if (response.ok && data.data?.url) {
+        return data.data.url
+      }
+    } catch (error) {
+      console.error('Failed to upload image:', error)
+    }
+    return null
+  }
+
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files) return
     
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            setProductImages(prev => [...prev, e.target!.result as string])
-          }
-        }
-        reader.readAsDataURL(file)
+    const file = files[0]
+    if (file && file.type.startsWith('image/')) {
+      const preview = URL.createObjectURL(file)
+      setProductImages([preview])
+      
+      setUploadingImage(true)
+      const url = await uploadImage(file)
+      setUploadingImage(false)
+      
+      if (url) {
+        setProductImageURL(url)
       }
-    })
+    }
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -88,8 +116,9 @@ export default function CreatePage() {
     setIsDragging(false)
   }
 
-  const removeImage = (index: number) => {
-    setProductImages(prev => prev.filter((_, i) => i !== index))
+  const removeImage = () => {
+    setProductImages([])
+    setProductImageURL(null)
   }
 
   const handleProductSubmit = async () => {
@@ -107,6 +136,7 @@ export default function CreatePage() {
           product_name: project.product_name,
           product_description: project.product_description,
           product_url: project.product_url,
+          product_image_url: productImageURL,
         }),
       })
       
@@ -278,16 +308,24 @@ export default function CreatePage() {
                       onChange={(e) => handleFileSelect(e.target.files)}
                     />
                     <div
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => !uploadingImage && fileInputRef.current?.click()}
                       onDrop={handleDrop}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        uploadingImage ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                      } ${
                         isDragging ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-violet-400'
                       }`}
                     >
-                      <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">Click or drag images to upload</p>
+                      {uploadingImage ? (
+                        <Loader2 className="h-8 w-8 mx-auto text-violet-600 mb-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                      )}
+                      <p className="text-sm text-gray-600">
+                        {uploadingImage ? 'Uploading...' : 'Click or drag images to upload'}
+                      </p>
                       <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB</p>
                     </div>
                     {productImages.length > 0 && (
@@ -299,8 +337,13 @@ export default function CreatePage() {
                               alt={`Product ${index + 1}`}
                               className="h-20 w-20 object-cover rounded-lg border border-gray-200"
                             />
+                            {productImageURL && (
+                              <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-green-500 text-white rounded-full flex items-center justify-center">
+                                <Check className="h-3 w-3" />
+                              </div>
+                            )}
                             <button
-                              onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                              onClick={(e) => { e.stopPropagation(); removeImage(); }}
                               className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                             >
                               <X className="h-3 w-3" />

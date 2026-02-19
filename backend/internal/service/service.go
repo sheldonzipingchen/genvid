@@ -222,6 +222,7 @@ func (s *ProjectService) Create(ctx context.Context, userID string, req *model.C
 		ProductName:        &req.ProductName,
 		ProductDescription: req.ProductDescription,
 		ProductURL:         req.ProductURL,
+		ProductImageURL:    req.ProductImageURL,
 	}
 
 	if err := s.projectRepo.Create(ctx, project); err != nil {
@@ -313,6 +314,10 @@ func (s *ProjectService) processVideoGeneration(ctx context.Context, project *mo
 		Prompt:  prompt,
 		Quality: "speed",
 		Size:    size,
+	}
+
+	if project.ProductImageURL != nil && *project.ProductImageURL != "" {
+		req.ImageURL = *project.ProductImageURL
 	}
 
 	resp, err := s.zhipuClient.GenerateVideo(req)

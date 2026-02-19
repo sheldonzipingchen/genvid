@@ -58,6 +58,7 @@ func main() {
 	projectHandler := handler.NewProjectHandler(projectService)
 	avatarHandler := handler.NewAvatarHandler()
 	paymentHandler := handler.NewPaymentHandler(cfg)
+	uploadHandler := handler.NewUploadHandler("./uploads", cfg.Server.AppURL)
 
 	r := chi.NewRouter()
 
@@ -74,6 +75,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
+
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/auth/register", authHandler.Register)
@@ -95,6 +98,9 @@ func main() {
 
 			r.Get("/avatars", avatarHandler.List)
 			r.Get("/avatars/{id}", avatarHandler.GetByID)
+
+			r.Post("/upload", uploadHandler.Upload)
+			r.Delete("/upload", uploadHandler.Delete)
 
 			r.Post("/payments/checkout", paymentHandler.CreateCheckoutSession)
 		})

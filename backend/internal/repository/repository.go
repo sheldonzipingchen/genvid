@@ -159,8 +159,8 @@ func NewProjectRepository(db *sqlx.DB) *ProjectRepository {
 
 func (r *ProjectRepository) Create(ctx context.Context, project *model.Project) error {
 	query := `
-		INSERT INTO projects (id, user_id, product_name, product_description, product_url, status)
-		VALUES ($1, $2, $3, $4, $5, 'draft')
+		INSERT INTO projects (id, user_id, product_name, product_description, product_url, product_image_url, status)
+		VALUES ($1, $2, $3, $4, $5, $6, 'draft')
 		RETURNING id, created_at, updated_at
 	`
 
@@ -176,6 +176,7 @@ func (r *ProjectRepository) Create(ctx context.Context, project *model.Project) 
 		project.ProductName,
 		project.ProductDescription,
 		project.ProductURL,
+		project.ProductImageURL,
 	).Scan(&project.ID, &project.CreatedAt, &project.UpdatedAt)
 
 	return err
@@ -184,7 +185,7 @@ func (r *ProjectRepository) Create(ctx context.Context, project *model.Project) 
 func (r *ProjectRepository) GetByID(ctx context.Context, id string) (*model.Project, error) {
 	project := &model.Project{}
 	query := `
-		SELECT id, user_id, avatar_id, title, product_name, product_description, product_url,
+		SELECT id, user_id, avatar_id, title, product_name, product_description, product_url, product_image_url,
 		       script, language, format, status, progress_percent, error_message,
 		       external_task_id, external_provider, video_url, thumbnail_url,
 		       created_at, updated_at, started_at, completed_at
@@ -214,7 +215,7 @@ func (r *ProjectRepository) GetByUserID(ctx context.Context, userID string, limi
 	}
 
 	query := `
-		SELECT id, user_id, avatar_id, title, product_name, product_description, product_url,
+		SELECT id, user_id, avatar_id, title, product_name, product_description, product_url, product_image_url,
 		       script, language, format, status, progress_percent, error_message,
 		       external_task_id, external_provider, video_url, thumbnail_url,
 		       created_at, updated_at, started_at, completed_at
