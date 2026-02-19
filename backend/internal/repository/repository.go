@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/genvid/backend/internal/model"
 	"github.com/google/uuid"
@@ -12,9 +11,9 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("record not found")
-	ErrDuplicate     = errors.New("record already exists")
-	ErrUnauthorized  = errors.New("unauthorized")
+	ErrNotFound     = errors.New("record not found")
+	ErrDuplicate    = errors.New("record already exists")
+	ErrUnauthorized = errors.New("unauthorized")
 )
 
 type ProfileRepository struct {

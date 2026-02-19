@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/genvid/backend/internal/config"
-	"github.com/genvid/backend/internal/heygen"
 	"github.com/genvid/backend/internal/repository"
+	"github.com/genvid/backend/internal/zhipu"
 )
 
 type VideoGenerationJob struct {
@@ -23,23 +23,23 @@ type VideoGenerationJob struct {
 }
 
 type VideoWorker struct {
-	heygenClient *heygen.Client
-	projectRepo  *repository.ProjectRepository
-	profileRepo  *repository.ProfileRepository
-	cfg          *config.Config
+	zhipuClient *zhipu.Client
+	projectRepo *repository.ProjectRepository
+	profileRepo *repository.ProfileRepository
+	cfg         *config.Config
 }
 
 func NewVideoWorker(
-	heygenClient *heygen.Client,
+	zhipuClient *zhipu.Client,
 	projectRepo *repository.ProjectRepository,
 	profileRepo *repository.ProfileRepository,
 	cfg *config.Config,
 ) *VideoWorker {
 	return &VideoWorker{
-		heygenClient: heygenClient,
-		projectRepo:  projectRepo,
-		profileRepo:  profileRepo,
-		cfg:          cfg,
+		zhipuClient: zhipuClient,
+		projectRepo: projectRepo,
+		profileRepo: profileRepo,
+		cfg:         cfg,
 	}
 }
 
@@ -55,26 +55,37 @@ func (w *VideoWorker) ProcessJob(ctx context.Context, jobData []byte) error {
 		return fmt.Errorf("failed to update status: %w", err)
 	}
 
-	req := heygen.VideoGenerationRequest{
-		AvatarID: job.AvatarID,
-		VoiceID:  w.getVoiceID(job.Language),
-		Text:     job.Script,
-		Ratio:    job.Format,
+	// Build prompt from script and product info
+	prompt := job.Script
+	if job.ProductName != "" {
+		prompt = fmt.Sprintf("Product: %s\n\n%s", job.ProductName, job.Script)
 	}
 
-	resp, err := w.heygenClient.GenerateAvatarVideo(req)
+	// Determine video size based on format
+	size := w.getVideoSize(job.Format)
+
+	// Generate video using Zhipu CogVideoX
+	req := zhipu.VideoGenerationRequest{
+		Model:   w.cfg.External.Zhipu.Model,
+		Prompt:  prompt,
+		Quality: "speed",
+		Size:    size,
+	}
+
+	resp, err := w.zhipuClient.GenerateVideo(req)
 	if err != nil {
 		w.handleFailure(ctx, job, err.Error())
 		return fmt.Errorf("failed to generate video: %w", err)
 	}
 
-	if err := w.projectRepo.SetProcessing(ctx, job.ProjectID, resp.VideoID, "heygen"); err != nil {
+	if err := w.projectRepo.SetProcessing(ctx, job.ProjectID, resp.ID, "zhipu"); err != nil {
 		return fmt.Errorf("failed to set processing: %w", err)
 	}
 
 	_ = w.projectRepo.UpdateStatus(ctx, job.ProjectID, "processing", 30)
 
-	status, err := w.heygenClient.WaitForCompletion(resp.VideoID, 5*time.Minute)
+	// Wait for video completion (5 minute timeout)
+	result, err := w.zhipuClient.WaitForCompletion(resp.ID, 5*time.Minute)
 	if err != nil {
 		w.handleFailure(ctx, job, err.Error())
 		return fmt.Errorf("video generation failed: %w", err)
@@ -82,8 +93,11 @@ func (w *VideoWorker) ProcessJob(ctx context.Context, jobData []byte) error {
 
 	_ = w.projectRepo.UpdateStatus(ctx, job.ProjectID, "processing", 80)
 
-	videoURL := status.URL
-	thumbnailURL := ""
+	var videoURL, thumbnailURL string
+	if result.VideoResult != nil {
+		videoURL = result.VideoResult.URL
+		thumbnailURL = result.VideoResult.CoverURL
+	}
 
 	if err := w.projectRepo.SetCompleted(ctx, job.ProjectID, videoURL, thumbnailURL); err != nil {
 		return fmt.Errorf("failed to mark completed: %w", err)
@@ -103,23 +117,17 @@ func (w *VideoWorker) handleFailure(ctx context.Context, job VideoGenerationJob,
 	}
 }
 
-func (w *VideoWorker) getVoiceID(language string) string {
-	voices := map[string]string{
-		"en": "en-US-JennyNeural",
-		"es": "es-ES-ElviraNeural",
-		"fr": "fr-FR-DeniseNeural",
-		"de": "de-DE-KatjaNeural",
-		"it": "it-IT-ElsaNeural",
-		"pt": "pt-BR-FranciscaNeural",
-		"ja": "ja-JP-NanamiNeural",
-		"ko": "ko-KR-SunHiNeural",
-		"zh": "zh-CN-XiaoxiaoNeural",
+func (w *VideoWorker) getVideoSize(format string) string {
+	sizes := map[string]string{
+		"9:16": "1080x1920",
+		"1:1":  "1024x1024",
+		"16:9": "1920x1080",
 	}
 
-	if voiceID, ok := voices[language]; ok {
-		return voiceID
+	if size, ok := sizes[format]; ok {
+		return size
 	}
-	return voices["en"]
+	return "1080x1920" // Default to vertical video for TikTok/Reels
 }
 
 func (w *VideoWorker) Start(ctx context.Context, jobs <-chan []byte) {

@@ -94,7 +94,7 @@ make docker-up    # Start PostgreSQL + Redis
 
 | Service | Config Key | Location |
 |---------|------------|----------|
-| HeyGen | `HEYGEN_API_KEY` | `internal/heygen/client.go` |
+| ZhipuAI | `ZHIPU_API_KEY` | `internal/zhipu/client.go` |
 | Stripe | `STRIPE_SECRET_KEY` | `internal/handler/payment_handler.go` |
 | JWT | `JWT_SECRET` | `pkg/auth/jwt.go` |
 

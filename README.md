@@ -17,7 +17,7 @@ Genvid/
 │   ├── internal/
 │   │   ├── config/           # 配置管理
 │   │   ├── handler/          # HTTP 处理器
-│   │   ├── heygen/           # HeyGen API 客户端
+│   │   ├── zhipu/            # 智谱 CogVideoX API 客户端
 │   │   ├── middleware/       # 中间件
 │   │   ├── model/            # 数据模型
 │   │   ├── repository/       # 数据访问层
@@ -28,7 +28,7 @@ Genvid/
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   └── Makefile
-└── frontend/                 # Next.js 15 前端
+└── frontend/                 # Next.js 16 前端
     └── src/
         ├── app/              # App Router 页面
         │   ├── create/       # 视频创建流程
@@ -55,7 +55,7 @@ Genvid/
 - ✅ 视频生成 API
 - ✅ Avatar 列表 API
 - ✅ Stripe 支付集成
-- ✅ HeyGen 视频生成客户端
+- ✅ 智谱 CogVideoX 视频生成客户端
 - ✅ 视频生成 Worker
 
 ### 前端页面
@@ -154,7 +154,7 @@ npm run dev
 ## 技术栈
 
 ### 前端
-- Next.js 15 (App Router)
+- Next.js 16 (App Router)
 - React 19
 - TypeScript
 - Tailwind CSS
@@ -168,7 +168,7 @@ npm run dev
 - JWT 认证
 
 ### 外部服务
-- HeyGen API (视频生成)
+- 智谱 CogVideoX (视频生成)
 - Stripe (支付)
 - Resend (邮件)
 - OpenAI (脚本生成)
@@ -211,7 +211,7 @@ fly deploy
 ## 下一步优化
 
 1. **Supabase 集成**: 替换本地 PostgreSQL
-2. **真实 HeyGen API**: 配置生产 API Key
+2. **真实 CogVideoX API**: 配置生产 API Key
 3. **Redis 队列**: 使用 BullMQ 替代内存队列
 4. **CDN 配置**: Cloudflare 加速视频下载
 5. **监控告警**: 添加 Sentry + Grafana

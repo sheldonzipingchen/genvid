@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/genvid/backend/internal/model"
@@ -21,7 +20,7 @@ func (h *AvatarHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *AvatarHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	avatarID := chi.URLParam(r, "id")
-	
+
 	avatars := getMockAvatars()
 	for _, avatar := range avatars {
 		if avatar.ID == avatarID {
@@ -29,7 +28,7 @@ func (h *AvatarHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	respondError(w, http.StatusNotFound, "NOT_FOUND", "Avatar not found", nil)
 }
 

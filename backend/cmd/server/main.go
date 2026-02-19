@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,9 +17,10 @@ import (
 	"github.com/genvid/backend/internal/middleware"
 	"github.com/genvid/backend/internal/repository"
 	"github.com/genvid/backend/internal/service"
+	"github.com/genvid/backend/internal/zhipu"
 	"github.com/genvid/backend/pkg/auth"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware/chicors"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	db, err := sql.Open("postgres", cfg.GetDSN())
+	db, err := sqlx.Connect("postgres", cfg.GetDSN())
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -46,11 +46,13 @@ func main() {
 
 	jwtService := auth.NewJWTService(cfg.JWT)
 
+	zhipuClient := zhipu.NewClient(cfg.External.Zhipu.APIKey)
+
 	profileRepo := repository.NewProfileRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
 
 	authService := service.NewAuthService(profileRepo, jwtService, cfg)
-	projectService := service.NewProjectService(projectRepo, profileRepo, authService)
+	projectService := service.NewProjectService(projectRepo, profileRepo, authService, zhipuClient, cfg)
 
 	authHandler := handler.NewAuthHandler(authService)
 	projectHandler := handler.NewProjectHandler(projectService)
@@ -66,13 +68,7 @@ func main() {
 
 	r.Use(middleware.LoggingMiddleware)
 	r.Use(middleware.RecoveryMiddleware)
-	r.Use(chicors.Handler(chicors.Options{
-		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Requested-With"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
+	r.Use(middleware.CORSMiddleware(allowedOrigins))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

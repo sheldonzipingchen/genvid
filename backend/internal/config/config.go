@@ -11,21 +11,21 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	OAuth    OAuthConfig
-	External ExternalConfig
-	AWS      AWSConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	JWT       JWTConfig
+	OAuth     OAuthConfig
+	External  ExternalConfig
+	AWS       AWSConfig
 	RateLimit RateLimitConfig
 }
 
 // ServerConfig holds server configuration
 type ServerConfig struct {
-	Port    string
-	Env     string
-	AppURL  string
+	Port   string
+	Env    string
+	AppURL string
 }
 
 // DatabaseConfig holds database configuration
@@ -66,16 +66,16 @@ type GoogleOAuthConfig struct {
 
 // ExternalConfig holds external service configuration
 type ExternalConfig struct {
-	HeyGen  HeyGenConfig
-	Stripe  StripeConfig
-	Resend  ResendConfig
-	OpenAI  OpenAIConfig
+	Zhipu  ZhipuConfig
+	Stripe StripeConfig
+	Resend ResendConfig
+	OpenAI OpenAIConfig
 }
 
-// HeyGenConfig holds HeyGen API configuration
-type HeyGenConfig struct {
-	APIKey        string
-	WebhookSecret string
+// ZhipuConfig holds ZhipuAI API configuration
+type ZhipuConfig struct {
+	APIKey string
+	Model  string // cogvideox-3, cogvideox-flash, etc.
 }
 
 // StripeConfig holds Stripe configuration
@@ -145,9 +145,9 @@ func Load() (*Config, error) {
 			},
 		},
 		External: ExternalConfig{
-			HeyGen: HeyGenConfig{
-				APIKey:        getEnv("HEYGEN_API_KEY", ""),
-				WebhookSecret: getEnv("HEYGEN_WEBHOOK_SECRET", ""),
+			Zhipu: ZhipuConfig{
+				APIKey: getEnv("ZHIPU_API_KEY", ""),
+				Model:  getEnv("ZHIPU_MODEL", "cogvideox-3"),
 			},
 			Stripe: StripeConfig{
 				SecretKey:     getEnv("STRIPE_SECRET_KEY", ""),

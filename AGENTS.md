@@ -43,7 +43,7 @@ genvid/
 | UI components | `frontend/src/components/ui/` | shadcn-style with CVA |
 | Auth state | `frontend/src/stores/auth.ts` | Zustand with persist |
 | API calls | `frontend/src/lib/api/client.ts` | Single APIClient class |
-| Video generation | `backend/internal/worker/` + `heygen/` | Worker + HeyGen client |
+| Video generation | `backend/internal/zhipu/` | Zhipu CogVideoX client |
 
 ## CODE MAP
 
@@ -111,5 +111,6 @@ npm run lint          # ESLint
 
 - **Version mismatch**: README says Next.js 15, package.json has 16.1.6
 - **No CI workflows**: Missing `.github/workflows/` - add for GitHub Actions
-- **HeyGen API key**: Set `HEYGEN_API_KEY` env var for video generation
+- **Zhipu API key**: Set `ZHIPU_API_KEY` env var for video generation
+- **CogVideoX model**: Default is `cogvideox-3`, configurable via `ZHIPU_MODEL`
 - **Stripe webhook**: Production needs proper signature verification
