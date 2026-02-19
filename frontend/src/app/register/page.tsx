@@ -9,9 +9,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuthStore } from '@/stores/auth'
 import { Video, Check } from 'lucide-react'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+
 export default function RegisterPage() {
   const router = useRouter()
-  const { setTokens, setUser } = useAuthStore()
+  const { setAuth } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -24,7 +26,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, full_name: fullName }),
@@ -32,14 +34,14 @@ export default function RegisterPage() {
 
       const data = await response.json()
 
-      if (data.success && data.data) {
-        setTokens(data.data.access_token, data.data.refresh_token)
-        setUser(data.data.user)
+      if (response.ok && data.access_token) {
+        setAuth(data.user, data.access_token, data.refresh_token)
         router.push('/dashboard')
       } else {
-        setError(data.error?.message || 'Registration failed')
+        setError(data.error?.message || data.message || 'Registration failed')
       }
-    } catch {
+    } catch (err) {
+      console.error('Registration error:', err)
       setError('Unable to connect to server')
     } finally {
       setLoading(false)

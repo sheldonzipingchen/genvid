@@ -8,10 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth'
 import { Video } from 'lucide-react'
+import { api } from '@/lib/api/client'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setTokens, setUser } = useAuthStore()
+  const { setAuth } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -23,7 +26,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -31,14 +34,14 @@ export default function LoginPage() {
 
       const data = await response.json()
 
-      if (data.success && data.data) {
-        setTokens(data.data.access_token, data.data.refresh_token)
-        setUser(data.data.user)
+      if (response.ok && data.access_token) {
+        setAuth(data.user, data.access_token, data.refresh_token)
         router.push('/dashboard')
       } else {
-        setError(data.error?.message || 'Login failed')
+        setError(data.error?.message || data.message || 'Login failed')
       }
-    } catch {
+    } catch (err) {
+      console.error('Login error:', err)
       setError('Unable to connect to server')
     } finally {
       setLoading(false)

@@ -7,6 +7,8 @@ import type { Avatar } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { Check, Crown, Loader2 } from 'lucide-react'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+
 const genderFilters = [
   { value: 'all', label: 'All' },
   { value: 'male', label: 'Male' },
@@ -39,14 +41,16 @@ export function AvatarSelector({ selectedAvatar, onSelect }: AvatarSelectorProps
 
   const fetchAvatars = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/avatars`, {
+      const response = await fetch(`${API_URL}/api/avatars`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
       const data = await response.json()
-      if (data.success) {
-        setAvatars(data.data || [])
+      if (response.ok) {
+        setAvatars(data.data || data || [])
+      } else {
+        setAvatars(getMockAvatars())
       }
     } catch (error) {
       setAvatars(getMockAvatars())

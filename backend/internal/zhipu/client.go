@@ -46,6 +46,13 @@ type VideoResultResponse struct {
 	VideoResult *VideoResult `json:"video_result,omitempty"`
 }
 
+// AsyncResultResponse represents the response from async-result endpoint
+type AsyncResultResponse struct {
+	Model       string        `json:"model"`
+	TaskStatus  string        `json:"task_status"` // PROCESSING, SUCCESS, FAIL
+	VideoResult []VideoResult `json:"video_result,omitempty"`
+}
+
 // VideoResult contains the generated video details
 type VideoResult struct {
 	URL      string  `json:"url"`
@@ -145,34 +152,29 @@ func (c *Client) GenerateVideo(req VideoGenerationRequest) (*VideoGenerationResp
 
 // GetVideoResult queries the status and result of a video generation task
 func (c *Client) GetVideoResult(taskID string) (*VideoResultResponse, error) {
-	endpoint := fmt.Sprintf("/videos/generations/result/%s", taskID)
+	endpoint := fmt.Sprintf("/async-result/%s", taskID)
 
 	respBody, err := c.doRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var response struct {
-		RequestID   string       `json:"request_id"`
-		ID          string       `json:"id"`
-		Model       string       `json:"model"`
-		TaskStatus  string       `json:"task_status"`
-		VideoResult *VideoResult `json:"video_result,omitempty"`
-		Code        string       `json:"code"`
-		Message     string       `json:"message"`
-	}
-
+	var response AsyncResultResponse
 	if err := json.Unmarshal(respBody, &response); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	return &VideoResultResponse{
-		RequestID:   response.RequestID,
-		ID:          response.ID,
-		Model:       response.Model,
-		TaskStatus:  response.TaskStatus,
-		VideoResult: response.VideoResult,
-	}, nil
+	result := &VideoResultResponse{
+		ID:         taskID,
+		Model:      response.Model,
+		TaskStatus: response.TaskStatus,
+	}
+
+	if len(response.VideoResult) > 0 {
+		result.VideoResult = &response.VideoResult[0]
+	}
+
+	return result, nil
 }
 
 // WaitForCompletion polls until video generation is complete or timeout

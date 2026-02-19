@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -17,8 +17,11 @@ import {
   Loader2, 
   Upload,
   Link as LinkIcon,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 const steps = [
   { id: 1, name: 'Product', description: 'Add your product' },
@@ -29,9 +32,12 @@ const steps = [
 
 export default function CreatePage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, _hasHydrated } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [productImages, setProductImages] = useState<string[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   
   const [project, setProject] = useState<Partial<Project>>({
     product_name: '',
@@ -45,17 +51,53 @@ export default function CreatePage() {
   const [projectId, setProjectId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!_hasHydrated) return
     if (!isAuthenticated) {
       router.push('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, _hasHydrated, router])
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return
+    
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setProductImages(prev => [...prev, e.target!.result as string])
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    })
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    handleFileSelect(e.dataTransfer.files)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const removeImage = (index: number) => {
+    setProductImages(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleProductSubmit = async () => {
     if (!project.product_name) return
     
     setLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`, {
+      const response = await fetch(`${API_URL}/api/projects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,8 +111,8 @@ export default function CreatePage() {
       })
       
       const data = await response.json()
-      if (data.success && data.data) {
-        setProjectId(data.data.id)
+      if (response.ok && (data.data || data.id)) {
+        setProjectId(data.data?.id || data.id)
         setCurrentStep(2)
       }
     } catch (error) {
@@ -85,7 +127,7 @@ export default function CreatePage() {
     
     setLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}/generate`, {
+      const response = await fetch(`${API_URL}/api/projects/${projectId}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +142,7 @@ export default function CreatePage() {
       })
       
       const data = await response.json()
-      if (data.success) {
+      if (response.ok) {
         router.push('/dashboard')
       }
     } catch (error) {
@@ -227,11 +269,46 @@ export default function CreatePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Product Images
                     </label>
-                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-violet-400 transition-colors cursor-pointer">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleFileSelect(e.target.files)}
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                        isDragging ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-violet-400'
+                      }`}
+                    >
                       <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                       <p className="text-sm text-gray-600">Click or drag images to upload</p>
                       <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB</p>
                     </div>
+                    {productImages.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-4">
+                        {productImages.map((img, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={img}
+                              alt={`Product ${index + 1}`}
+                              className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                            />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                              className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

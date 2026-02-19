@@ -19,6 +19,8 @@ import {
   Loader2
 } from 'lucide-react'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-600', icon: Clock },
   queued: { label: 'Queued', color: 'bg-blue-100 text-blue-600', icon: Clock },
@@ -30,28 +32,29 @@ const statusConfig = {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated, logout } = useAuthStore()
+  const { user, token, isAuthenticated, logout, _hasHydrated } = useAuthStore()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!_hasHydrated) return
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
     fetchProjects()
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, _hasHydrated, router])
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`, {
+      const response = await fetch(`${API_URL}/api/projects`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
       const data = await response.json()
-      if (data.success) {
-        setProjects(data.data || [])
+      if (response.ok) {
+        setProjects(data.data || data || [])
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error)
@@ -64,7 +67,7 @@ export default function DashboardPage() {
     if (!confirm('Are you sure you want to delete this project?')) return
     
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`, {
+      await fetch(`${API_URL}/api/projects/${projectId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

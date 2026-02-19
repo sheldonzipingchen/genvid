@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/genvid/backend/internal/middleware"
 	"github.com/genvid/backend/internal/model"
 	"github.com/genvid/backend/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -283,10 +284,7 @@ func (h *ProjectHandler) GenerateVideo(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUserIDFromContext(r *http.Request) string {
-	if userID, ok := r.Context().Value("user_id").(string); ok {
-		return userID
-	}
-	return ""
+	return middleware.GetUserID(r)
 }
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
