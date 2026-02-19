@@ -2,7 +2,12 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/genvid/backend/internal/config"
@@ -317,7 +322,10 @@ func (s *ProjectService) processVideoGeneration(ctx context.Context, project *mo
 	}
 
 	if project.ProductImageURL != nil && *project.ProductImageURL != "" {
-		req.ImageURL = *project.ProductImageURL
+		imageData, err := s.loadImageAsBase64(*project.ProductImageURL)
+		if err == nil {
+			req.ImageURL = imageData
+		}
 	}
 
 	resp, err := s.zhipuClient.GenerateVideo(req)
@@ -347,6 +355,33 @@ func (s *ProjectService) processVideoGeneration(ctx context.Context, project *mo
 		_ = s.projectRepo.SetFailed(ctx, project.ID, err.Error())
 		_ = s.authService.RefundCredit(ctx, project.UserID)
 	}
+}
+
+func (s *ProjectService) loadImageAsBase64(imagePath string) (string, error) {
+	if strings.HasPrefix(imagePath, "data:image") {
+		return imagePath, nil
+	}
+
+	filePath := strings.TrimPrefix(imagePath, "/uploads/")
+	filePath = filepath.Join("uploads", filePath)
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	ext := strings.ToLower(filepath.Ext(filePath))
+	mimeType := "image/jpeg"
+	switch ext {
+	case ".png":
+		mimeType = "image/png"
+	case ".gif":
+		mimeType = "image/gif"
+	case ".webp":
+		mimeType = "image/webp"
+	}
+
+	return fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(data)), nil
 }
 
 func (s *ProjectService) handleVideoFailure(ctx context.Context, project *model.Project, errMsg string) {

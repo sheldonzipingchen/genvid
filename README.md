@@ -148,8 +148,64 @@ npm run dev
 | `/api/projects/:id` | GET/DELETE | 项目详情/删除 |
 | `/api/projects/:id/generate` | POST | 生成视频 |
 | `/api/avatars` | GET | Avatar 列表 |
+| `/api/upload` | POST | 上传图片 |
 | `/api/payments/checkout` | POST | 创建支付会话 |
 | `/api/payments/webhook` | POST | Stripe Webhook |
+
+## 环境变量配置
+
+### 后端 (backend/.env)
+
+```bash
+# 数据库 - Docker 本地开发
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/genvid?sslmode=disable
+
+# JWT
+JWT_SECRET=your-jwt-secret
+
+# 智谱 AI - 视频生成
+ZHIPU_API_KEY=your-zhipu-api-key
+ZHIPU_MODEL=cogvideox-3
+
+# Stripe - 支付
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# 其他
+OPENAI_API_KEY=sk-xxx
+RESEND_API_KEY=re_xxx
+```
+
+### 前端 (frontend/.env.local)
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+## 注意事项
+
+### 数据库迁移
+
+`./scripts/db.sh setup` 脚本不会自动读取 `.env` 文件，推荐使用以下方式：
+
+```bash
+# 方式 1: 加载环境变量后执行
+export $(grep -v '^#' .env | xargs) && ./scripts/db.sh setup
+
+# 方式 2: 使用 Docker 执行迁移
+docker exec -i genvid-postgres psql -U postgres -d genvid < ./migrations/001_initial_schema.sql
+```
+
+### 视频生成
+
+- **文生视频**: 只需要 `prompt` 参数
+- **图生视频**: 需要 `prompt` + `image_url` 参数（图片会自动转为 base64）
+- 图片格式支持: JPG, PNG, GIF, WebP（最大 10MB）
+- 视频生成时间: 约 2-5 分钟
+
+### 端口冲突
+
+Docker PostgreSQL 使用 **5433** 端口（避免与本地 PostgreSQL 5432 冲突）。
 
 ## 技术栈
 
