@@ -1,5 +1,7 @@
-import { translations, Language } from './translations'
-import { useLanguageStore } from './store'
+import { translations } from './translations'
+import { useLanguageStore, Language } from './store'
+
+export type { Language }
 
 type NestedKeyOf<ObjectType extends object> = {
   [Key in keyof ObjectType & string]: ObjectType[Key] extends object
@@ -30,5 +32,3 @@ export function useTranslation() {
   
   return { t, language }
 }
-
-export { Language }

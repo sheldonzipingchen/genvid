@@ -1,5 +1,3 @@
-export type Language = 'zh' | 'en'
-
 export const translations = {
   zh: {
     // Navigation
