@@ -118,7 +118,6 @@ type CreateProjectRequest struct {
 }
 
 type GenerateVideoRequest struct {
-	AvatarID      string `json:"avatar_id" validate:"required,uuid"`
 	Script        string `json:"script" validate:"required,min=10,max=5000"`
 	Language      string `json:"language" validate:"required,len=2"`
 	Format        string `json:"format" validate:"required,oneof=9:16 1:1 16:9"`

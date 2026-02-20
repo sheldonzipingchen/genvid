@@ -7,9 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth'
-import { AvatarSelector } from '@/components/features/avatar-selector'
 import { ScriptEditor } from '@/components/features/script-editor'
-import type { Avatar, Project } from '@/types'
+import type { Project } from '@/types'
 import { 
   Video, 
   ArrowLeft, 
@@ -26,9 +25,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 const steps = [
   { id: 1, name: 'Product', description: 'Add your product' },
-  { id: 2, name: 'Avatar', description: 'Choose your avatar' },
-  { id: 3, name: 'Script', description: 'Create your script' },
-  { id: 4, name: 'Generate', description: 'Generate video' },
+  { id: 2, name: 'Script', description: 'Create your script' },
+  { id: 3, name: 'Generate', description: 'Generate video' },
 ]
 
 export default function CreatePage() {
@@ -46,10 +44,9 @@ export default function CreatePage() {
     product_name: '',
     product_description: '',
     product_url: '',
-    language: 'en',
+    language: 'zh',
     format: '9:16',
   })
-  const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null)
   const [script, setScript] = useState('')
   const [videoDuration, setVideoDuration] = useState(5)
   const [projectId, setProjectId] = useState<string | null>(null)
@@ -154,7 +151,7 @@ export default function CreatePage() {
   }
 
   const handleGenerateVideo = async () => {
-    if (!projectId || !selectedAvatar || !script) return
+    if (!projectId || !script) return
     
     setLoading(true)
     try {
@@ -165,7 +162,6 @@ export default function CreatePage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          avatar_id: selectedAvatar.id,
           script: script,
           language: project.language,
           format: project.format,
@@ -189,8 +185,6 @@ export default function CreatePage() {
       case 1:
         return !!project.product_name
       case 2:
-        return !!selectedAvatar
-      case 3:
         return !!script && script.length >= 10
       default:
         return false
@@ -360,13 +354,6 @@ export default function CreatePage() {
             )}
 
             {currentStep === 2 && (
-              <AvatarSelector
-                selectedAvatar={selectedAvatar}
-                onSelect={setSelectedAvatar}
-              />
-            )}
-
-            {currentStep === 3 && (
               <ScriptEditor
                 productName={project.product_name || ''}
                 productDescription={project.product_description || ''}
@@ -377,7 +364,7 @@ export default function CreatePage() {
               />
             )}
 
-            {currentStep === 4 && (
+            {currentStep === 3 && (
               <div className="text-center py-8">
                 <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center">
                   <Sparkles className="h-10 w-10 text-violet-600" />
@@ -393,10 +380,6 @@ export default function CreatePage() {
                     <div className="flex justify-between">
                       <dt className="text-gray-500">Product</dt>
                       <dd className="text-gray-900 font-medium">{project.product_name}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Avatar</dt>
-                      <dd className="text-gray-900 font-medium">{selectedAvatar?.display_name || selectedAvatar?.name}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-gray-500">Duration</dt>
@@ -429,7 +412,7 @@ export default function CreatePage() {
                 Previous
               </Button>
               
-              {currentStep < 4 ? (
+              {currentStep < 3 ? (
                 <Button
                   onClick={() => {
                     if (currentStep === 1) handleProductSubmit()

@@ -265,8 +265,8 @@ func (h *ProjectHandler) GenerateVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.AvatarID == "" || req.Script == "" {
-		respondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Avatar ID and script are required", nil)
+	if req.Script == "" {
+		respondError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Script is required", nil)
 		return
 	}
 

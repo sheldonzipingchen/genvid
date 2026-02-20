@@ -282,9 +282,11 @@ func (s *ProjectService) GenerateVideo(ctx context.Context, projectID, userID st
 		return nil, err
 	}
 
-	project.AvatarID = &req.AvatarID
 	project.Script = &req.Script
 	project.Language = req.Language
+	if project.Language == "" {
+		project.Language = "zh"
+	}
 	project.Format = model.VideoFormat(req.Format)
 	project.VideoDuration = req.VideoDuration
 	if project.VideoDuration == 0 {
@@ -361,7 +363,7 @@ func (s *ProjectService) processVideoGeneration(ctx context.Context, project *mo
 
 		if imageURL != "" {
 			req.ImageURL = imageURL
-			req.Prompt = "保持图片中产品的外观、形状、颜色、品牌标识完全不变。" + segmentPrompt
+			req.Prompt = "Strictly preserve the exact appearance of the product in the image: maintain identical shape, size, colors, textures, materials, branding, logos, labels, and all visual details. Do not modify, distort, or alter the product in any way. Only animate the scene around the product. " + segmentPrompt
 		}
 
 		resp, err := s.zhipuClient.GenerateVideo(req)
