@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { Video, Menu, X } from 'lucide-react'
 import { useState } from 'react'
+import { LanguageSelector } from './language-selector'
+import { useTranslation } from '@/lib/i18n'
 
 export function Header() {
   const { isAuthenticated } = useAuthStore()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { t } = useTranslation()
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
@@ -27,28 +30,26 @@ export function Header() {
 
           <div className="hidden md:flex md:items-center md:space-x-8">
             <Link href="/features" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-              Features
+              {t('nav.features')}
             </Link>
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-              Pricing
-            </Link>
-            <Link href="/blog" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-              Blog
+              {t('nav.pricing')}
             </Link>
           </div>
 
           <div className="hidden md:flex md:items-center md:space-x-4">
+            <LanguageSelector />
             {isAuthenticated ? (
               <Button asChild>
-                <Link href="/dashboard">Dashboard</Link>
+                <Link href="/dashboard">{t('nav.dashboard')}</Link>
               </Button>
             ) : (
               <>
                 <Button variant="ghost" asChild>
-                  <Link href="/login">Log in</Link>
+                  <Link href="/login">{t('nav.login')}</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/register">Get Started</Link>
+                  <Link href="/register">{t('nav.register')}</Link>
                 </Button>
               </>
             )}
@@ -71,27 +72,27 @@ export function Header() {
           <div className="md:hidden py-4 border-t border-gray-100">
             <div className="space-y-2">
               <Link href="/features" className="block px-3 py-2 text-gray-600 hover:text-gray-900">
-                Features
+                {t('nav.features')}
               </Link>
               <Link href="/pricing" className="block px-3 py-2 text-gray-600 hover:text-gray-900">
-                Pricing
+                {t('nav.pricing')}
               </Link>
-              <Link href="/blog" className="block px-3 py-2 text-gray-600 hover:text-gray-900">
-                Blog
-              </Link>
+            </div>
+            <div className="mt-4 flex items-center justify-between px-3">
+              <LanguageSelector />
             </div>
             <div className="mt-4 space-y-2">
               {isAuthenticated ? (
                 <Button asChild className="w-full">
-                  <Link href="/dashboard">Dashboard</Link>
+                  <Link href="/dashboard">{t('nav.dashboard')}</Link>
                 </Button>
               ) : (
                 <>
                   <Button variant="outline" asChild className="w-full">
-                    <Link href="/login">Log in</Link>
+                    <Link href="/login">{t('nav.login')}</Link>
                   </Button>
                   <Button asChild className="w-full">
-                    <Link href="/register">Get Started</Link>
+                    <Link href="/register">{t('nav.register')}</Link>
                   </Button>
                 </>
               )}

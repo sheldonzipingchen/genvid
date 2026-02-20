@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth'
+import { LanguageSelector } from '@/components/layout/language-selector'
+import { useTranslation } from '@/lib/i18n'
 import type { Project } from '@/types'
 import { 
   Video, 
@@ -33,6 +35,7 @@ const statusConfig = {
 export default function DashboardPage() {
   const router = useRouter()
   const { user, token, isAuthenticated, logout, _hasHydrated } = useAuthStore()
+  const { t } = useTranslation()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -101,16 +104,17 @@ export default function DashboardPage() {
               </span>
             </Link>
             <div className="flex items-center gap-4">
+              <LanguageSelector />
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{user?.full_name || user?.email}</p>
-                <p className="text-xs text-gray-500">{user?.credits_remaining} credits remaining</p>
+                <p className="text-xs text-gray-500">{user?.credits_remaining} {t('dashboard.creditsRemaining').toLowerCase()}</p>
               </div>
               <Button 
                 variant="outline" 
                 onClick={() => { logout(); router.push('/') }}
                 className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
               >
-                Sign out
+                {t('nav.logout')}
               </Button>
             </div>
           </div>
