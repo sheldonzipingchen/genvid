@@ -52,6 +52,7 @@ type Project struct {
 	Script             *string       `json:"script,omitempty" db:"script"`
 	Language           string        `json:"language" db:"language"`
 	Format             VideoFormat   `json:"format" db:"format"`
+	VideoDuration      int           `json:"video_duration" db:"video_duration"`
 	Status             ProjectStatus `json:"status" db:"status"`
 	ProgressPercent    int           `json:"progress_percent" db:"progress_percent"`
 	ErrorMessage       *string       `json:"error_message,omitempty" db:"error_message"`
@@ -117,10 +118,11 @@ type CreateProjectRequest struct {
 }
 
 type GenerateVideoRequest struct {
-	AvatarID string `json:"avatar_id" validate:"required,uuid"`
-	Script   string `json:"script" validate:"required,min=10,max=5000"`
-	Language string `json:"language" validate:"required,len=2"`
-	Format   string `json:"format" validate:"required,oneof=9:16 1:1 16:9"`
+	AvatarID      string `json:"avatar_id" validate:"required,uuid"`
+	Script        string `json:"script" validate:"required,min=10,max=5000"`
+	Language      string `json:"language" validate:"required,len=2"`
+	Format        string `json:"format" validate:"required,oneof=9:16 1:1 16:9"`
+	VideoDuration int    `json:"video_duration" validate:"oneof=5 10 30"`
 }
 
 type APIResponse struct {

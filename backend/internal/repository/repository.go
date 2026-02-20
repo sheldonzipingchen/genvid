@@ -186,7 +186,7 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id string) (*model.Proj
 	project := &model.Project{}
 	query := `
 		SELECT id, user_id, avatar_id, title, product_name, product_description, product_url, product_image_url,
-		       script, language, format, status, progress_percent, error_message,
+		       script, language, format, video_duration, status, progress_percent, error_message,
 		       external_task_id, external_provider, video_url, thumbnail_url,
 		       created_at, updated_at, started_at, completed_at
 		FROM projects
@@ -216,7 +216,7 @@ func (r *ProjectRepository) GetByUserID(ctx context.Context, userID string, limi
 
 	query := `
 		SELECT id, user_id, avatar_id, title, product_name, product_description, product_url, product_image_url,
-		       script, language, format, status, progress_percent, error_message,
+		       script, language, format, video_duration, status, progress_percent, error_message,
 		       external_task_id, external_provider, video_url, thumbnail_url,
 		       created_at, updated_at, started_at, completed_at
 		FROM projects

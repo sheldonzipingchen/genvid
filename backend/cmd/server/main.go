@@ -77,6 +77,7 @@ func main() {
 	})
 
 	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+	r.Handle("/temp_videos/*", http.StripPrefix("/temp_videos/", http.FileServer(http.Dir("./temp_videos"))))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/auth/register", authHandler.Register)

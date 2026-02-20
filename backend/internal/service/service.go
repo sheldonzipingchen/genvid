@@ -13,6 +13,7 @@ import (
 	"github.com/genvid/backend/internal/config"
 	"github.com/genvid/backend/internal/model"
 	"github.com/genvid/backend/internal/repository"
+	"github.com/genvid/backend/internal/video"
 	"github.com/genvid/backend/internal/zhipu"
 	"github.com/genvid/backend/pkg/auth"
 	"github.com/google/uuid"
@@ -285,6 +286,10 @@ func (s *ProjectService) GenerateVideo(ctx context.Context, projectID, userID st
 	project.Script = &req.Script
 	project.Language = req.Language
 	project.Format = model.VideoFormat(req.Format)
+	project.VideoDuration = req.VideoDuration
+	if project.VideoDuration == 0 {
+		project.VideoDuration = 5
+	}
 
 	if err := s.projectRepo.UpdateStatus(ctx, projectID, model.ProjectStatusQueued, 0); err != nil {
 		_ = s.authService.RefundCredit(ctx, userID)
@@ -302,7 +307,17 @@ func (s *ProjectService) GenerateVideo(ctx context.Context, projectID, userID st
 }
 
 func (s *ProjectService) processVideoGeneration(ctx context.Context, project *model.Project) {
-	_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, 10)
+	_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, 5)
+
+	duration := project.VideoDuration
+	if duration == 0 {
+		duration = 5
+	}
+
+	segments := 1
+	if duration > 10 {
+		segments = (duration + 9) / 10
+	}
 
 	prompt := ""
 	if project.ProductName != nil {
@@ -314,48 +329,101 @@ func (s *ProjectService) processVideoGeneration(ctx context.Context, project *mo
 
 	size := s.getVideoSize(string(project.Format))
 
-	req := zhipu.VideoGenerationRequest{
-		Model:   s.cfg.External.Zhipu.Model,
-		Prompt:  prompt,
-		Quality: "speed",
-		Size:    size,
-	}
-
+	var imageURL string
 	if project.ProductImageURL != nil && *project.ProductImageURL != "" {
 		imageData, err := s.loadImageAsBase64(*project.ProductImageURL)
 		if err == nil {
-			req.ImageURL = imageData
-			req.Prompt = "保持图片中产品的外观、形状、颜色、品牌标识完全不变。" + prompt
+			imageURL = imageData
 		}
 	}
 
-	resp, err := s.zhipuClient.GenerateVideo(req)
-	if err != nil {
-		s.handleVideoFailure(ctx, project, err.Error())
+	var videoURLs []string
+	var lastThumbnailURL string
+
+	for i := 0; i < segments; i++ {
+		progress := 10 + (i * 60 / segments)
+		_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, progress)
+
+		segmentPrompt := prompt
+		if segments > 1 {
+			segmentPrompts := video.SplitScript(prompt, segments)
+			if i < len(segmentPrompts) {
+				segmentPrompt = segmentPrompts[i]
+			}
+		}
+
+		req := zhipu.VideoGenerationRequest{
+			Model:   s.cfg.External.Zhipu.Model,
+			Prompt:  segmentPrompt,
+			Quality: "speed",
+			Size:    size,
+		}
+
+		if imageURL != "" {
+			req.ImageURL = imageURL
+			req.Prompt = "保持图片中产品的外观、形状、颜色、品牌标识完全不变。" + segmentPrompt
+		}
+
+		resp, err := s.zhipuClient.GenerateVideo(req)
+		if err != nil {
+			s.handleVideoFailure(ctx, project, fmt.Sprintf("Segment %d failed: %s", i+1, err.Error()))
+			return
+		}
+
+		taskProgress := progress + (30 / segments)
+		_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, taskProgress)
+
+		result, err := s.zhipuClient.WaitForCompletion(resp.ID, 10*time.Minute)
+		if err != nil {
+			s.handleVideoFailure(ctx, project, fmt.Sprintf("Segment %d completion failed: %s", i+1, err.Error()))
+			return
+		}
+
+		if result.VideoResult != nil && result.VideoResult.URL != "" {
+			videoURLs = append(videoURLs, result.VideoResult.URL)
+			if i == 0 && result.VideoResult.CoverURL != "" {
+				lastThumbnailURL = result.VideoResult.CoverURL
+			}
+		}
+	}
+
+	_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, 90)
+
+	var finalVideoURL string
+	if len(videoURLs) == 0 {
+		s.handleVideoFailure(ctx, project, "No videos generated")
 		return
+	} else if len(videoURLs) == 1 {
+		finalVideoURL = videoURLs[0]
+	} else {
+		mergedPath, err := s.mergeVideos(videoURLs, project.ID)
+		if err != nil {
+			finalVideoURL = videoURLs[0]
+		} else {
+			finalVideoURL = mergedPath
+		}
 	}
 
-	_ = s.projectRepo.SetProcessing(ctx, project.ID, resp.ID, "zhipu")
-	_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, 30)
-
-	result, err := s.zhipuClient.WaitForCompletion(resp.ID, 5*time.Minute)
-	if err != nil {
-		s.handleVideoFailure(ctx, project, err.Error())
-		return
-	}
-
-	_ = s.projectRepo.UpdateStatus(ctx, project.ID, model.ProjectStatusProcessing, 80)
-
-	var videoURL, thumbnailURL string
-	if result.VideoResult != nil {
-		videoURL = result.VideoResult.URL
-		thumbnailURL = result.VideoResult.CoverURL
-	}
-
-	if err := s.projectRepo.SetCompleted(ctx, project.ID, videoURL, thumbnailURL); err != nil {
+	if err := s.projectRepo.SetCompleted(ctx, project.ID, finalVideoURL, lastThumbnailURL); err != nil {
 		_ = s.projectRepo.SetFailed(ctx, project.ID, err.Error())
 		_ = s.authService.RefundCredit(ctx, project.UserID)
 	}
+}
+
+func (s *ProjectService) mergeVideos(videoURLs []string, projectID string) (string, error) {
+	if err := video.CheckFFmpeg(); err != nil {
+		return "", err
+	}
+
+	merger := video.NewMerger("./temp_videos")
+	outputPath := merger.GetOutputPath(projectID)
+
+	finalPath, err := merger.MergeVideos(videoURLs, outputPath)
+	if err != nil {
+		return "", err
+	}
+
+	return "/temp_videos/" + filepath.Base(finalPath), nil
 }
 
 func (s *ProjectService) loadImageAsBase64(imagePath string) (string, error) {

@@ -60,10 +60,12 @@ interface ScriptEditorProps {
   productName: string
   productDescription: string
   script: string
+  videoDuration: number
   onChange: (script: string) => void
+  onDurationChange: (duration: number) => void
 }
 
-export function ScriptEditor({ productName, productDescription, script, onChange }: ScriptEditorProps) {
+export function ScriptEditor({ productName, productDescription, script, videoDuration, onChange, onDurationChange }: ScriptEditorProps) {
   const [generating, setGenerating] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
 
@@ -170,6 +172,37 @@ export function ScriptEditor({ productName, productDescription, script, onChange
           <li>• Include a clear call-to-action</li>
           <li>• Aim for 30-60 seconds (75-150 words)</li>
         </ul>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Video Duration
+        </label>
+        <div className="flex gap-3">
+          {[
+            { value: 5, label: '5s', desc: 'Quick teaser' },
+            { value: 10, label: '10s', desc: 'Standard' },
+            { value: 30, label: '30s', desc: 'Full ad' },
+          ].map((duration) => (
+            <Card
+              key={duration.value}
+              className={`flex-1 cursor-pointer transition-all ${
+                videoDuration === duration.value ? 'ring-2 ring-violet-600' : ''
+              }`}
+              onClick={() => onDurationChange(duration.value)}
+            >
+              <CardContent className="p-4 text-center">
+                <p className="font-medium text-gray-900">{duration.label}</p>
+                <p className="text-xs text-gray-500">{duration.desc}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {videoDuration === 30 && (
+          <p className="text-xs text-amber-600 mt-2">
+            ⚠️ 30-second videos will be generated as 3 segments and merged, taking longer to process.
+          </p>
+        )}
       </div>
 
       <div>

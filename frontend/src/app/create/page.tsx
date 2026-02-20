@@ -51,6 +51,7 @@ export default function CreatePage() {
   })
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null)
   const [script, setScript] = useState('')
+  const [videoDuration, setVideoDuration] = useState(5)
   const [projectId, setProjectId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -168,6 +169,7 @@ export default function CreatePage() {
           script: script,
           language: project.language,
           format: project.format,
+          video_duration: videoDuration,
         }),
       })
       
@@ -369,7 +371,9 @@ export default function CreatePage() {
                 productName={project.product_name || ''}
                 productDescription={project.product_description || ''}
                 script={script}
+                videoDuration={videoDuration}
                 onChange={setScript}
+                onDurationChange={setVideoDuration}
               />
             )}
 
@@ -393,6 +397,10 @@ export default function CreatePage() {
                     <div className="flex justify-between">
                       <dt className="text-gray-500">Avatar</dt>
                       <dd className="text-gray-900 font-medium">{selectedAvatar?.display_name || selectedAvatar?.name}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Duration</dt>
+                      <dd className="text-gray-900 font-medium">{videoDuration}s</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-gray-500">Format</dt>

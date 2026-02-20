@@ -50,6 +50,7 @@ backend/*.exe
 backend/backend
 backend/genvid-backend
 backend/uploads/
+backend/temp_videos/
 
 # Database
 *.db

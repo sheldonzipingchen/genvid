@@ -25,6 +25,7 @@ export interface Project {
   script: string | null
   language: string
   format: '9:16' | '1:1' | '16:9'
+  video_duration: number
   status: 'draft' | 'queued' | 'processing' | 'completed' | 'failed' | 'canceled'
   progress_percent: number
   error_message: string | null
